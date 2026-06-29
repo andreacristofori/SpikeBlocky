@@ -1,0 +1,10 @@
+{
+  "name": "Lego Spike a Blocchi (e Pyton)",
+  "description": "Da qui continuiamo . V2 va e resta di riserva",
+  "requestFramePermissions": [
+    "serial"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
