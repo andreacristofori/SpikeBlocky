@@ -12,7 +12,7 @@ Blockly.defineBlocksWithJsonArray([
     "type": "spike_start",
     "message0": "Quando il programma inizia",
     "nextStatement": null,
-    "colour": "#FFBF00",
+    "colour": "#00008B",
     "tooltip": "Inizio del programma",
     "helpUrl": ""
   },
@@ -28,7 +28,7 @@ Blockly.defineBlocksWithJsonArray([
     ],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": 230,
+    "colour": "#FF6B6B",
     "inputsInline": true,
     "tooltip": "Scrivi un testo sullo schermo del Brick",
     "helpUrl": ""
@@ -38,9 +38,45 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "Suona un Beep",
     "previousStatement": null,
     "nextStatement": null,
-    "colour": 230,
+    "colour": "#555555",
     "inputsInline": true,
     "tooltip": "Emette un suono",
+    "helpUrl": ""
+  },
+  {
+    "type": "spike_sound_play_note",
+    "message0": "Suona nota %1 per %2 secondi",
+    "args0": [
+      {
+        "type": "field_dropdown",
+        "name": "NOTE",
+        "options": [
+          ["Do 4 (C4)", "261"],
+          ["Do# 4 (C#4)", "277"],
+          ["Re 4 (D4)", "293"],
+          ["Re# 4 (D#4)", "311"],
+          ["Mi 4 (E4)", "329"],
+          ["Fa 4 (F4)", "349"],
+          ["Fa# 4 (F#4)", "370"],
+          ["Sol 4 (G4)", "392"],
+          ["Sol# 4 (G#4)", "415"],
+          ["La 4 (A4)", "440"],
+          ["La# 4 (A#4)", "466"],
+          ["Si 4 (B4)", "493"],
+          ["Do 5 (C5)", "523"]
+        ]
+      },
+      {
+        "type": "input_value",
+        "name": "DURATION",
+        "check": "Number"
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": "#555555",
+    "inputsInline": true,
+    "tooltip": "Suona una nota musicale per un tempo specificato",
     "helpUrl": ""
   },
   {
@@ -54,7 +90,7 @@ Blockly.defineBlocksWithJsonArray([
     ],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": 160,
+    "colour": "#FF6B6B",
     "inputsInline": true,
     "tooltip": "Stampa un valore nel terminale",
     "helpUrl": ""
@@ -391,7 +427,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "Cancella schermo",
     "previousStatement": null,
     "nextStatement": null,
-    "colour": 230,
+    "colour": "#FF6B6B",
     "inputsInline": true,
     "tooltip": "Spegne tutti i LED sullo schermo del Brick",
     "helpUrl": ""
@@ -421,7 +457,7 @@ Blockly.defineBlocksWithJsonArray([
     ],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": 230,
+    "colour": "#FF6B6B",
     "inputsInline": true,
     "tooltip": "Mostra un'immagine predefinita sullo schermo del Brick",
     "helpUrl": ""
@@ -440,7 +476,7 @@ Blockly.defineBlocksWithJsonArray([
       }
     ],
     "output": "Boolean",
-    "colour": 230,
+    "colour": "#FF6B6B",
     "inputsInline": true,
     "tooltip": "Ritorna vero se il pulsante selezionato del Brick è premuto",
     "helpUrl": ""
@@ -583,6 +619,12 @@ pythonGenerator.forBlock['spike_light_matrix_write'] = function(block: any, gene
 
 pythonGenerator.forBlock['spike_sound_beep'] = function(block: any, generator: any) {
   return `sound.beep()\n`;
+};
+
+pythonGenerator.forBlock['spike_sound_play_note'] = function(block: any, generator: any) {
+  const note = block.getFieldValue('NOTE');
+  const duration = generator.valueToCode(block, 'DURATION', generator.ORDER_NONE) || '0.5';
+  return `sound.beep(${note}, int(float(${duration}) * 1000))\nawait runloop.sleep_ms(int(float(${duration}) * 1000))\n`;
 };
 
 pythonGenerator.forBlock['spike_print'] = function(block: any, generator: any) {
@@ -770,7 +812,7 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Eventi",
-      "colour": "#FFBF00",
+      "colour": "#00008B",
       "contents": [
         { "kind": "block", "type": "spike_start" }
       ]
@@ -778,7 +820,7 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Brick & Schermo",
-      "colour": "#00008B",
+      "colour": "#FF6B6B",
       "contents": [
         {
           "kind": "block",
@@ -794,7 +836,6 @@ const toolbox = {
         },
         { "kind": "block", "type": "spike_light_matrix_clear" },
         { "kind": "block", "type": "spike_light_matrix_show_image" },
-        { "kind": "block", "type": "spike_sound_beep" },
         {
           "kind": "block",
           "type": "spike_print",
@@ -809,6 +850,26 @@ const toolbox = {
         },
         { "kind": "block", "type": "spike_hub_button_pressed" },
         { "kind": "block", "type": "text" }
+      ]
+    },
+    {
+      "kind": "category",
+      "name": "Musica",
+      "colour": "#555555",
+      "contents": [
+        {
+          "kind": "block",
+          "type": "spike_sound_play_note",
+          "inputs": {
+            "DURATION": {
+              "block": {
+                "type": "math_number",
+                "fields": { "NUM": 0.5 }
+              }
+            }
+          }
+        },
+        { "kind": "block", "type": "spike_sound_beep" }
       ]
     },
     {
@@ -1158,7 +1219,7 @@ const BlocklyEditor = forwardRef<BlocklyEditorRef, BlocklyEditorProps>(
         }
       },
       saveSelectedBlock() {
-        let selected = Blockly.common.getSelected() as Blockly.Block;
+        let selected = Blockly.common.getSelected() as any as Blockly.Block;
         if (!selected) {
            selected = selectedBlockRef.current as Blockly.Block;
         }
@@ -1390,7 +1451,11 @@ async def main():
         pass
 
     try:
-        runloop.create_task(_monitor_stop_button())
+        if hasattr(runloop, 'create_task'):
+            runloop.create_task(_monitor_stop_button())
+        else:
+            import asyncio
+            asyncio.create_task(_monitor_stop_button())
     except Exception as e:
         print("Errore monitor stop:", e)
 
@@ -1625,7 +1690,7 @@ runloop.run(main())
       workspaceRef.current.addChangeListener((event: any) => {
         const selected = Blockly.common.getSelected();
         if (selected) {
-          selectedBlockRef.current = selected as Blockly.Block;
+          selectedBlockRef.current = selected as any as Blockly.Block;
         }
         
         if (event.type === Blockly.Events.BLOCK_CREATE) {
