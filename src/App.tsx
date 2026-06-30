@@ -55,7 +55,7 @@ export default function App() {
   const [port, setPort] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [logs, setLogs] = useState<string>('');
-  const [customCode, setCustomCode] = useState<string>('from hub import light_matrix\nlight_matrix.write("CIAO")');
+  const [customCode, setCustomCode] = useState<string>('');
   const [blocklyCode, setBlocklyCode] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'blocks' | 'python'>('blocks');
   const [isExecuting, setIsExecuting] = useState(false);

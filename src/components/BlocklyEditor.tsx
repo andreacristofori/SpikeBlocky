@@ -9,6 +9,14 @@ Blockly.setLocale(It as any);
 // Define custom blocks
 Blockly.defineBlocksWithJsonArray([
   {
+    "type": "spike_start",
+    "message0": "Quando il programma inizia",
+    "nextStatement": null,
+    "colour": "#FFBF00",
+    "tooltip": "Inizio del programma",
+    "helpUrl": ""
+  },
+  {
     "type": "spike_light_matrix_write",
     "message0": "Scrivi sullo schermo %1",
     "args0": [
@@ -542,6 +550,10 @@ function getMaxMotorSpeed(): number {
   return 100;
 }
 
+pythonGenerator.forBlock['spike_start'] = function(block: any, generator: any) {
+  return '';
+};
+
 pythonGenerator.forBlock['spike_motor_run_for'] = function(block: any, generator: any) {
   const port = block.getFieldValue('PORT');
   const value = generator.valueToCode(block, 'VALUE', generator.ORDER_NONE) || '1';
@@ -675,7 +687,7 @@ pythonGenerator.forBlock['spike_robot_move'] = function(block: any, generator: a
   const maxSpeed = getMaxMotorSpeed();
   const scaledSpeed = `int(float(${speed}) * 1000 / ${maxSpeed})`;
   
-  return `_drive_pair(int(${steering}), int(${scaledSpeed}))\n`;
+  return `_drive_pair(int(${steering}), ${scaledSpeed})\n`;
 };
 
 pythonGenerator.forBlock['spike_robot_move_for'] = function(block: any, generator: any) {
@@ -755,6 +767,14 @@ pythonGenerator.forBlock['spike_gyro_wait_angle'] = function(block: any, generat
 const toolbox = {
   "kind": "categoryToolbox",
   "contents": [
+    {
+      "kind": "category",
+      "name": "Eventi",
+      "colour": "#FFBF00",
+      "contents": [
+        { "kind": "block", "type": "spike_start" }
+      ]
+    },
     {
       "kind": "category",
       "name": "Brick & Schermo",
@@ -1045,6 +1065,62 @@ interface BlocklyEditorProps {
   maxMotorSpeed?: number;
   isVisible?: boolean;
 }
+
+const generateCodeFromWorkspace = (workspace: Blockly.WorkspaceSvg) => {
+  pythonGenerator.init(workspace);
+  let code = '';
+  const blocks = workspace.getTopBlocks(true);
+  
+  // Find the non-procedure block with the most descendants (the main program stack)
+  // Give priority to the 'spike_start' block if it exists
+  let mainBlock: Blockly.Block | null = null;
+  let maxDescendants = -1;
+  let hasStartBlock = false;
+  
+  for (const block of blocks) {
+    if (block.type === 'spike_start') {
+      mainBlock = block;
+      hasStartBlock = true;
+      break;
+    }
+  }
+
+  if (!hasStartBlock) {
+    for (const block of blocks) {
+      const isProcedure = block.type === 'procedures_defnoreturn' || block.type === 'procedures_defreturn';
+      if (!isProcedure) {
+        const descendantCount = block.getDescendants(false).length;
+        if (descendantCount > maxDescendants) {
+          maxDescendants = descendantCount;
+          mainBlock = block;
+        }
+      }
+    }
+  }
+  
+  for (let x = 0; x < blocks.length; x++) {
+    const block = blocks[x];
+    const isProcedure = block.type === 'procedures_defnoreturn' || block.type === 'procedures_defreturn';
+    if (isProcedure || block === mainBlock) {
+      let line = pythonGenerator.blockToCode(block);
+      if (Array.isArray(line)) {
+        line = line[0];
+      }
+      if (line) {
+        if (block.outputConnection) {
+          line = (pythonGenerator as any).scrubNakedValue(line as string);
+        }
+        code += line;
+      }
+    }
+  }
+  
+  code = pythonGenerator.finish(code);
+  code = code.replace(/^\s+\n/, '');
+  code = code.replace(/\n\s+$/, '\n');
+  code = code.replace(/[ \t]+\n/g, '\n');
+  return code;
+};
 
 const BlocklyEditor = forwardRef<BlocklyEditorRef, BlocklyEditorProps>(
   ({ onCodeChange, motors, wheelDiameter, wheelDistance, maxMotorSpeed, isVisible }, ref) => {
@@ -1446,7 +1522,7 @@ runloop.run(main())
   // Trigger regeneration when motors configuration, wheel parameters, maxMotorSpeed or currentCode changes
   useEffect(() => {
     if (workspaceRef.current) {
-      let code = pythonGenerator.workspaceToCode(workspaceRef.current);
+      let code = generateCodeFromWorkspace(workspaceRef.current);
       const defs = code.match(/^def ([a-zA-Z0-9_]+)\(/gm);
       if (defs) {
         const funcNames = defs.map(d => d.replace('def ', '').replace('(', '').trim());
@@ -1618,47 +1694,9 @@ runloop.run(main())
         };
       }
 
-      // Load default workspace
-      const defaultWorkspace = {
-        "blocks": {
-          "languageVersion": 0,
-          "blocks": [
-            {
-              "type": "spike_motor_run_for",
-              "x": 20,
-              "y": 20,
-              "fields": {
-                "PORT": "A",
-                "UNIT": "DEGREES"
-              },
-              "inputs": {
-                "VALUE": {
-                  "block": {
-                    "type": "math_number",
-                    "fields": {
-                      "NUM": 90
-                    }
-                  }
-                },
-                "SPEED": {
-                  "block": {
-                    "type": "math_number",
-                    "fields": {
-                      "NUM": 50
-                    }
-                  }
-                }
-              }
-            }
-          ]
-        }
-      };
-      
-      Blockly.serialization.workspaces.load(defaultWorkspace, workspaceRef.current);
-
       workspaceRef.current.addChangeListener(() => {
         if (workspaceRef.current) {
-          let code = pythonGenerator.workspaceToCode(workspaceRef.current);
+          let code = generateCodeFromWorkspace(workspaceRef.current);
           const defs = code.match(/^def ([a-zA-Z0-9_]+)\(/gm);
           if (defs) {
             const funcNames = defs.map(d => d.replace('def ', '').replace('(', '').trim());
