@@ -980,15 +980,15 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Matematica",
-      "colour": "#ADD8E6",
+      "colour": "#1D4ED8",
       "contents": [
-        { "kind": "block", "type": "math_number", "colour": "#ADD8E6" },
-        { "kind": "block", "type": "math_arithmetic", "colour": "#ADD8E6" },
-        { "kind": "block", "type": "math_single", "colour": "#ADD8E6" },
+        { "kind": "block", "type": "math_number", "colour": "#1D4ED8" },
+        { "kind": "block", "type": "math_arithmetic", "colour": "#1D4ED8" },
+        { "kind": "block", "type": "math_single", "colour": "#1D4ED8" },
         {
           "kind": "block",
           "type": "math_random_int",
-          "colour": "#ADD8E6",
+          "colour": "#1D4ED8",
           "inputs": {
             "FROM": {
               "block": {
@@ -1009,17 +1009,17 @@ const toolbox = {
     {
       "kind": "category",
       "name": "Testo",
-      "colour": 160,
+      "colour": "#000000",
       "contents": [
-        { "kind": "block", "type": "text" },
-        { "kind": "block", "type": "text_join" }
+        { "kind": "block", "type": "text", "colour": "#000000" },
+        { "kind": "block", "type": "text_join", "colour": "#000000" }
       ]
     },
     {
       "kind": "category",
       "name": "Variabili",
       "custom": "VARIABLE",
-      "colour": 330
+      "colour": "#EAB308"
     },
     {
       "kind": "category",
@@ -1496,10 +1496,42 @@ runloop.run(main())
                 const originalInit = Blockly.Blocks[type].init;
                 Blockly.Blocks[type].init = function() {
                     originalInit.apply(this, arguments);
-                    (this as any).setColour('#ADD8E6');
+                    (this as any).setColour('#1D4ED8');
                 };
             } else {
-                Blockly.Blocks[type].colour = '#ADD8E6';
+                Blockly.Blocks[type].colour = '#1D4ED8';
+            }
+        }
+      });
+      
+      // Change Testo blocks color
+      const textBlocks = ['text', 'text_join'];
+      textBlocks.forEach(type => {
+        if (Blockly.Blocks[type]) {
+            if (Blockly.Blocks[type].init) {
+                const originalInit = Blockly.Blocks[type].init;
+                Blockly.Blocks[type].init = function() {
+                    originalInit.apply(this, arguments);
+                    (this as any).setColour('#000000');
+                };
+            } else {
+                Blockly.Blocks[type].colour = '#000000';
+            }
+        }
+      });
+
+      // Change Variabili blocks color
+      const variableBlocks = ['variables_get', 'variables_set', 'math_change'];
+      variableBlocks.forEach(type => {
+        if (Blockly.Blocks[type]) {
+            if (Blockly.Blocks[type].init) {
+                const originalInit = Blockly.Blocks[type].init;
+                Blockly.Blocks[type].init = function() {
+                    originalInit.apply(this, arguments);
+                    (this as any).setColour('#EAB308');
+                };
+            } else {
+                Blockly.Blocks[type].colour = '#EAB308';
             }
         }
       });
