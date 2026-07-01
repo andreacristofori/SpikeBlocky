@@ -779,54 +779,70 @@ except: pass
 
       {/* Setup Modal */}
       {isSetupOpen && (
-        <div className="fixed inset-0 bg-neutral-900/50 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-neutral-200 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative z-[10000]">
-            <div className="flex items-center justify-between p-4 border-b border-neutral-300 bg-neutral-200">
-              <h2 className="font-semibold text-lg text-neutral-800">Setup Robot</h2>
-              <button onClick={() => setIsSetupOpen(false)} className="p-1 hover:bg-neutral-300 rounded-md text-neutral-500 transition-colors">
+        <div className="fixed inset-0 bg-neutral-950/70 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-neutral-100 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col border-4 border-black relative z-[10000]">
+            {/* Colorful Lego-style header */}
+            <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 text-black px-6 py-4 flex items-center justify-between border-b-4 border-black">
+              <div className="flex items-center gap-3">
+                <Settings className="w-6 h-6 animate-pulse" />
+                <h2 className="font-extrabold text-2xl tracking-tight uppercase">Setup Robot Spike</h2>
+              </div>
+              <button 
+                onClick={() => setIsSetupOpen(false)} 
+                className="p-1.5 bg-white/40 hover:bg-white/80 active:scale-95 rounded-full text-black transition-all border-2 border-black"
+                title="Chiudi"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto bg-neutral-200">
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
+            
+            <div className="p-4 overflow-y-auto bg-neutral-50 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {/* Motori */}
-                <div>
-                  <h3 className="font-bold text-neutral-800 mb-4 flex items-center gap-2">Motori</h3>
-                  <div className="space-y-4">
+                <div className="flex flex-col">
+                  <h3 className="font-extrabold text-base text-amber-800 mb-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 border-2 border-amber-300 w-fit shadow-sm">
+                    ⚙️ Motori
+                  </h3>
+                  <div className="space-y-2 flex-1">
                     {motors.map(motor => (
-                      <div key={`motor-${motor.id}`} className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-neutral-700">Motore {motor.id}</span>
+                      <div 
+                        key={`motor-${motor.id}`} 
+                        className={`p-2.5 bg-white rounded-xl border-2 transition-all duration-200 shadow-sm hover:shadow-md ${motor.port ? 'border-amber-400 bg-amber-50/10' : 'border-neutral-200'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`text-xs font-extrabold ${motor.port ? 'text-amber-700' : 'text-neutral-500'}`}>
+                            Motore {motor.id}
+                          </span>
                           <select 
                             value={motor.port}
                             onChange={(e) => handleMotorChange(motor.id, 'port', e.target.value)}
-                            className="text-sm border border-neutral-200 rounded-md p-1 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                            className="text-xs font-bold border-2 border-amber-300 rounded-md p-1 bg-amber-50 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
                           >
                             <option value="">Porta...</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                            <option value="F">F</option>
+                            <option value="A">Porta A</option>
+                            <option value="B">Porta B</option>
+                            <option value="C">Porta C</option>
+                            <option value="D">Porta D</option>
+                            <option value="E">Porta E</option>
+                            <option value="F">Porta F</option>
                           </select>
                         </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer">
+                        <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-neutral-100">
+                          <label className={`flex items-center gap-1 text-[11px] font-extrabold px-1.5 py-0.5 rounded cursor-pointer transition-colors border ${motor.isTraction ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-neutral-50 border-neutral-200 text-neutral-500 hover:bg-neutral-100'}`}>
                             <input 
                               type="checkbox" 
                               checked={motor.isTraction}
                               onChange={(e) => handleMotorChange(motor.id, 'isTraction', e.target.checked)}
-                              className="rounded border-neutral-300 text-yellow-500 focus:ring-yellow-500" 
+                              className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-3 h-3" 
                             />
                             Trazione
                           </label>
-                          <label className="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer">
+                          <label className={`flex items-center gap-1 text-[11px] font-extrabold px-1.5 py-0.5 rounded cursor-pointer transition-colors border ${motor.isInverted ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-neutral-50 border-neutral-200 text-neutral-500 hover:bg-neutral-100'}`}>
                             <input 
                               type="checkbox" 
                               checked={motor.isInverted}
                               onChange={(e) => handleMotorChange(motor.id, 'isInverted', e.target.checked)}
-                              className="rounded border-neutral-300 text-yellow-500 focus:ring-yellow-500" 
+                              className="rounded border-amber-300 text-amber-500 focus:ring-amber-500 w-3 h-3" 
                             />
                             Inverti
                           </label>
@@ -837,36 +853,43 @@ except: pass
                 </div>
 
                 {/* Sensori */}
-                <div>
-                  <h3 className="font-bold text-neutral-800 mb-4 flex items-center gap-2">Sensori</h3>
-                  <div className="space-y-4">
+                <div className="flex flex-col">
+                  <h3 className="font-extrabold text-base text-emerald-800 mb-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 border-2 border-emerald-300 w-fit shadow-sm">
+                    👁️ Sensori
+                  </h3>
+                  <div className="space-y-2 flex-1">
                     {sensors.map(sensor => (
-                      <div key={`sensor-${sensor.id}`} className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-bold text-neutral-700">Sensore {sensor.id}</span>
+                      <div 
+                        key={`sensor-${sensor.id}`} 
+                        className={`p-2.5 bg-white rounded-xl border-2 transition-all duration-200 shadow-sm hover:shadow-md ${sensor.port ? 'border-emerald-400 bg-emerald-50/10' : 'border-neutral-200'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`text-xs font-extrabold ${sensor.port ? 'text-emerald-700' : 'text-neutral-500'}`}>
+                            Sensore {sensor.id}
+                          </span>
                           <select 
                             value={sensor.port}
                             onChange={(e) => handleSensorChange(sensor.id, 'port', e.target.value)}
-                            className="text-sm border border-neutral-200 rounded-md p-1 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                            className="text-xs font-bold border-2 border-emerald-300 rounded-md p-1 bg-emerald-50 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
                           >
                             <option value="">Porta...</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                            <option value="F">F</option>
+                            <option value="A">Porta A</option>
+                            <option value="B">Porta B</option>
+                            <option value="C">Porta C</option>
+                            <option value="D">Porta D</option>
+                            <option value="E">Porta E</option>
+                            <option value="F">Porta F</option>
                           </select>
                         </div>
                         <select 
                           value={sensor.type}
                           onChange={(e) => handleSensorChange(sensor.id, 'type', e.target.value)}
-                          className="w-full text-sm border border-neutral-200 rounded-md p-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                          className={`w-full text-xs font-bold border-2 rounded-md p-1 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer ${sensor.type ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-white border-neutral-200'}`}
                         >
                           <option value="">Tipo sensore...</option>
-                          <option value="color">Colore</option>
-                          <option value="distance">Distanza (Ultrasuoni)</option>
-                          <option value="force">Forza</option>
+                          <option value="color">Colore 🔴🔵</option>
+                          <option value="distance">Distanza (Ultrasuoni) 📏</option>
+                          <option value="force">Tocco/Forza 🏋️</option>
                         </select>
                       </div>
                     ))}
@@ -874,90 +897,100 @@ except: pass
                 </div>
 
                 {/* Dimensioni Robot */}
-                <div>
-                  <h3 className="font-bold text-neutral-800 mb-4 flex items-center gap-2">Dimensioni Robot</h3>
-                  <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-6">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-neutral-700">
+                <div className="flex flex-col">
+                  <h3 className="font-extrabold text-base text-blue-800 mb-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-100 border-2 border-blue-300 w-fit shadow-sm">
+                    📐 Dimensioni
+                  </h3>
+                  <div className="p-3 bg-white rounded-xl border-2 border-blue-300 shadow-sm space-y-3 flex-1">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-extrabold text-blue-800">
                         Diametro ruota (cm)
                       </label>
-                      <div className="relative rounded-md shadow-sm">
+                      <div className="relative rounded-md shadow-sm flex border-2 border-blue-300 overflow-hidden">
                         <input
                           type="number"
                           step="0.1"
                           min="0.1"
                           value={wheelDiameter}
                           onChange={(e) => handleWheelDiameterChange(parseFloat(e.target.value) || 0)}
-                          className="w-full text-sm border border-neutral-200 rounded-md p-2 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-400 pr-12"
+                          className="w-full text-xs font-bold p-1.5 bg-blue-50/30 focus:outline-none"
                           placeholder="es. 5.6"
                         />
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                          <span className="text-neutral-500 text-xs font-mono">cm</span>
+                        <div className="bg-blue-100 border-l-2 border-blue-300 px-2 flex items-center justify-center">
+                          <span className="text-blue-800 text-[10px] font-bold font-mono">cm</span>
                         </div>
                       </div>
-                      <p className="text-xs text-neutral-500">Usato per calcolare la distanza percorsa.</p>
+                      <p className="text-[10px] font-medium leading-tight text-neutral-500">Usato per la distanza percorsa.</p>
                     </div>
 
-                    <div className="space-y-2 pt-2 border-t border-neutral-200">
-                      <label className="block text-sm font-bold text-neutral-700">
-                        Distanza tra le ruote (cm)
+                    <div className="space-y-1 pt-2 border-t border-dashed border-neutral-200">
+                      <label className="block text-xs font-extrabold text-blue-800">
+                        Distanza ruote (cm)
                       </label>
-                      <div className="relative rounded-md shadow-sm">
+                      <div className="relative rounded-md shadow-sm flex border-2 border-blue-300 overflow-hidden">
                         <input
                           type="number"
                           step="0.1"
                           min="0.1"
                           value={wheelDistance}
                           onChange={(e) => handleWheelDistanceChange(parseFloat(e.target.value) || 0)}
-                          className="w-full text-sm border border-neutral-200 rounded-md p-2 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-400 pr-12"
+                          className="w-full text-xs font-bold p-1.5 bg-blue-50/30 focus:outline-none"
                           placeholder="es. 11.5"
                         />
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                          <span className="text-neutral-500 text-xs font-mono">cm</span>
+                        <div className="bg-blue-100 border-l-2 border-blue-300 px-2 flex items-center justify-center">
+                          <span className="text-blue-800 text-[10px] font-bold font-mono">cm</span>
                         </div>
                       </div>
-                      <p className="text-xs text-neutral-500">Usata per calcolare i gradi di sterzata nelle curve.</p>
+                      <p className="text-[10px] font-medium leading-tight text-neutral-500">Distanza interasse per le curve.</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Velocità massima motori */}
-                <div>
-                  <h3 className="font-bold text-neutral-800 mb-4 flex items-center gap-2">Velocità massima motori</h3>
-                  <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-6">
+                <div className="flex flex-col">
+                  <h3 className="font-extrabold text-base text-rose-800 mb-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-100 border-2 border-rose-300 w-fit shadow-sm">
+                    ⚡ Velocità
+                  </h3>
+                  <div className="p-3 bg-white rounded-xl border-2 border-rose-300 shadow-sm space-y-3 flex-1 flex flex-col justify-between">
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-neutral-700">
+                      <label className="block text-xs font-extrabold text-rose-800">
                         Valore massimo (0-1000)
                       </label>
-                      <div className="relative rounded-md shadow-sm">
+                      <div className="relative rounded-md shadow-sm border-2 border-rose-300 overflow-hidden">
                         <input
                           type="number"
                           min="0"
                           max="1000"
                           value={maxMotorSpeed}
                           onChange={(e) => handleMaxMotorSpeedChange(parseInt(e.target.value) || 0)}
-                          className="w-full text-sm border border-neutral-200 rounded-md p-2 bg-white focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                          className="w-full text-center text-sm font-extrabold p-1.5 bg-rose-50/30 focus:outline-none text-rose-700"
                           placeholder="es. 100"
                         />
                       </div>
-                      <input 
-                        type="range"
-                        min="0"
-                        max="1000"
-                        value={maxMotorSpeed}
-                        onChange={(e) => handleMaxMotorSpeedChange(parseInt(e.target.value))}
-                        className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-yellow-400"
-                      />
-                      <p className="text-xs text-neutral-500">Valore di riferimento per la velocità dei motori (default LEGO: 100).</p>
+                      <div>
+                        <input 
+                          type="range"
+                          min="0"
+                          max="1000"
+                          value={maxMotorSpeed}
+                          onChange={(e) => handleMaxMotorSpeedChange(parseInt(e.target.value))}
+                          className="w-full h-1.5 bg-rose-100 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="bg-rose-50 border border-rose-100 p-2 rounded-lg text-[10px] text-rose-900 font-medium space-y-0.5">
+                      <p>ℹ️ Velocità di riferimento.</p>
+                      <p>Standard LEGO: 100</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-neutral-200 bg-neutral-50 flex justify-end">
+            
+            <div className="p-5 border-t-4 border-black bg-neutral-100 flex justify-end gap-3">
               <button 
                 onClick={() => setIsSetupOpen(false)} 
-                className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-neutral-900 rounded-lg font-medium transition-colors text-sm"
+                className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 active:scale-95 text-black font-extrabold rounded-2xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-sm uppercase tracking-wider"
               >
                 Salva e Chiudi
               </button>

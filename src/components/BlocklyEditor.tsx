@@ -176,7 +176,7 @@ Blockly.defineBlocksWithJsonArray([
   },
   {
     "type": "spike_force_sensor",
-    "message0": "Sensore Di Tocco e Pressione sulla porta %1",
+    "message0": "Sensore di Tocco/Forza sulla porta %1",
     "args0": [
       {
         "type": "field_dropdown",
@@ -189,7 +189,7 @@ Blockly.defineBlocksWithJsonArray([
     "output": "Number",
     "colour": "#228B22",
     "inputsInline": true,
-    "tooltip": "Legge la pressione del sensore di forza",
+    "tooltip": "Legge la pressione del sensore di tocco/forza",
     "helpUrl": ""
   },
   {
@@ -520,7 +520,7 @@ Blockly.defineBlocksWithJsonArray([
       }
     ],
     "output": "Number",
-    "colour": "#228B22",
+    "colour": "#8B4513",
     "inputsInline": true,
     "tooltip": "Seleziona un colore",
     "helpUrl": ""
@@ -538,9 +538,27 @@ Blockly.defineBlocksWithJsonArray([
       }
     ],
     "output": "Number",
-    "colour": "#228B22",
+    "colour": "#8B4513",
     "inputsInline": true,
     "tooltip": "Ritorna l'ID del colore rilevato (0-10) o -1 se nessun colore",
+    "helpUrl": ""
+  },
+  {
+    "type": "spike_repeat_forever",
+    "message0": "ripeti per sempre %1 %2",
+    "args0": [
+      {
+        "type": "input_dummy"
+      },
+      {
+        "type": "input_statement",
+        "name": "DO"
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": 120,
+    "tooltip": "Esegue i blocchi all'interno all'infinito",
     "helpUrl": ""
   }
 ]);
@@ -806,6 +824,15 @@ pythonGenerator.forBlock['spike_gyro_wait_angle'] = function(block: any, generat
   return `while not (int(motion_sensor.tilt_angles()[${index}] / 10) ${comp} int(${angle})):\n    await runloop.sleep_ms(10)\n`;
 };
 
+pythonGenerator.forBlock['spike_repeat_forever'] = function(block: any, generator: any) {
+  const branch = generator.statementToCode(block, 'DO');
+  let branchCode = branch;
+  if (!branchCode.trim()) {
+    branchCode = '    pass\n';
+  }
+  return `while True:\n${branchCode}`;
+};
+
 const toolbox = {
   "kind": "categoryToolbox",
   "contents": [
@@ -915,12 +942,19 @@ const toolbox = {
       "name": "Sensori",
       "colour": "#228B22",
       "contents": [
-        { "kind": "block", "type": "spike_color" },
-        { "kind": "block", "type": "spike_color_sensor_color" },
         { "kind": "block", "type": "spike_color_sensor" },
         { "kind": "block", "type": "spike_color_sensor_reflection" },
         { "kind": "block", "type": "spike_distance_sensor" },
         { "kind": "block", "type": "spike_force_sensor" }
+      ]
+    },
+    {
+      "kind": "category",
+      "name": "Colori",
+      "colour": "#8B4513",
+      "contents": [
+        { "kind": "block", "type": "spike_color" },
+        { "kind": "block", "type": "spike_color_sensor_color" }
       ]
     },
     {
@@ -1037,7 +1071,7 @@ const toolbox = {
     },
     {
       "kind": "category",
-      "name": "Cicli",
+      "name": "Cicli/tempo",
       "colour": 120,
       "contents": [
         {
@@ -1052,6 +1086,7 @@ const toolbox = {
             }
           }
         },
+        { "kind": "block", "type": "spike_repeat_forever" },
         { "kind": "block", "type": "controls_repeat_ext" },
         { "kind": "block", "type": "controls_whileUntil" },
         { "kind": "block", "type": "controls_for" },
