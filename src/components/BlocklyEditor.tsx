@@ -34,6 +34,23 @@ Blockly.defineBlocksWithJsonArray([
     "helpUrl": ""
   },
   {
+    "type": "spike_light_matrix_write_number",
+    "message0": "Scrivi numero sullo schermo %1",
+    "args0": [
+      {
+        "type": "input_value",
+        "name": "NUMBER",
+        "check": "Number"
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": "#FF6B6B",
+    "inputsInline": true,
+    "tooltip": "Scrivi un numero sullo schermo del Brick",
+    "helpUrl": ""
+  },
+  {
     "type": "spike_sound_beep",
     "message0": "Suona un Beep",
     "previousStatement": null,
@@ -81,7 +98,7 @@ Blockly.defineBlocksWithJsonArray([
   },
   {
     "type": "spike_print",
-    "message0": "Stampa %1",
+    "message0": "Stampa nel terminale seriale %1",
     "args0": [
       {
         "type": "input_value",
@@ -92,7 +109,7 @@ Blockly.defineBlocksWithJsonArray([
     "nextStatement": null,
     "colour": "#FF6B6B",
     "inputsInline": true,
-    "tooltip": "Stampa un valore nel terminale",
+    "tooltip": "Stampa un valore nel terminale seriale",
     "helpUrl": ""
   },
   {
@@ -635,6 +652,11 @@ pythonGenerator.forBlock['spike_light_matrix_write'] = function(block: any, gene
   return `light_matrix.write(${text})\n`;
 };
 
+pythonGenerator.forBlock['spike_light_matrix_write_number'] = function(block: any, generator: any) {
+  const num = generator.valueToCode(block, 'NUMBER', generator.ORDER_NONE) || '0';
+  return `light_matrix.write(str(${num}))\n`;
+};
+
 pythonGenerator.forBlock['spike_sound_beep'] = function(block: any, generator: any) {
   return `sound.beep()\n`;
 };
@@ -846,7 +868,7 @@ const toolbox = {
     },
     {
       "kind": "category",
-      "name": "Brick & Schermo",
+      "name": "Brick/schermo",
       "colour": "#FF6B6B",
       "contents": [
         {
@@ -857,6 +879,18 @@ const toolbox = {
               "block": {
                 "type": "text",
                 "fields": { "TEXT": "Ciao" }
+              }
+            }
+          }
+        },
+        {
+          "kind": "block",
+          "type": "spike_light_matrix_write_number",
+          "inputs": {
+            "NUMBER": {
+              "block": {
+                "type": "math_number",
+                "fields": { "NUM": 123 }
               }
             }
           }
