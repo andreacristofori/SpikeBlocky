@@ -649,12 +649,12 @@ pythonGenerator.forBlock['spike_motor_run_for'] = function(block: any, generator
 
 pythonGenerator.forBlock['spike_light_matrix_write'] = function(block: any, generator: any) {
   const text = generator.valueToCode(block, 'TEXT', generator.ORDER_NONE) || '""';
-  return `light_matrix.write(${text})\n`;
+  return `light_matrix.write(${text})\nawait runloop.sleep_ms(len(str(${text})) * 400 + 500)\n`;
 };
 
 pythonGenerator.forBlock['spike_light_matrix_write_number'] = function(block: any, generator: any) {
   const num = generator.valueToCode(block, 'NUMBER', generator.ORDER_NONE) || '0';
-  return `light_matrix.write(str(${num}))\n`;
+  return `light_matrix.write(str(${num}))\nawait runloop.sleep_ms(len(str(${num})) * 400 + 500)\n`;
 };
 
 pythonGenerator.forBlock['spike_sound_beep'] = function(block: any, generator: any) {
@@ -1278,9 +1278,14 @@ const BlocklyEditor = forwardRef<BlocklyEditorRef, BlocklyEditorProps>(
         return null;
       },
       loadWorkspace(state: any) {
-        if (workspaceRef.current && state) {
+        if (workspaceRef.current) {
           try {
-            Blockly.serialization.workspaces.load(state, workspaceRef.current);
+            if (state) {
+              workspaceRef.current.clear();
+              Blockly.serialization.workspaces.load(state, workspaceRef.current);
+            } else {
+              workspaceRef.current.clear();
+            }
           } catch (error) {
             console.error("Errore nel caricamento del workspace:", error);
             alert("Impossibile caricare il file. Assicurati che sia un file di programma Spike valido.");
@@ -1567,7 +1572,7 @@ async def main():
                         pass
             elif not first_run:
                 try:
-                    light_matrix.write("R")
+                    light_matrix.clear()
                 except:
                     pass
                 if status_light:
@@ -1613,9 +1618,9 @@ async def main():
                     break
                 await runloop.sleep_ms(20)
 
-            # Dopo la pressione del tasto, mostriamo 'R'
+            # Dopo la pressione del tasto, puliamo
             try:
-                light_matrix.write("R")
+                light_matrix.clear()
             except:
                 pass
             if status_light:
@@ -1623,6 +1628,7 @@ async def main():
                     status_light.on('white')
                 except:
                     pass
+            await runloop.sleep_ms(100)
 
         # Resetta i flag e avvia il codice
         __stop_flag = False
@@ -1630,15 +1636,16 @@ async def main():
 
         try:
             await _run_user_code()
-        except Exception as e:
+        except BaseException as e:
             print("Interruzione o errore:", e)
         
-        # Se abbiamo eseguito via tasto (o eravamo in wait mode), assicuriamo che 'R' rimanga
+        # Se abbiamo eseguito via tasto (o eravamo in wait mode), assicuriamo lo schermo spento
         if is_wait_mode or not first_run:
             try:
-                light_matrix.write("R")
+                light_matrix.clear()
             except:
                 pass
+            await runloop.sleep_ms(50)
 
         _is_running_user_code = False
         _stop_pair()

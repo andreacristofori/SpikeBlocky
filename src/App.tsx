@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Usb, Terminal, ExternalLink, AlertCircle, Square, Blocks, Code, Settings, X, Upload, Save, FolderOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import Editor from 'react-simple-code-editor';
@@ -64,6 +64,8 @@ export default function App() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [currentSlot, setCurrentSlot] = useState<number>(0);
+  const TOTAL_SLOTS = 6;
   
   const [motors, setMotors] = useState<MotorConfig[]>(() => {
     const saved = localStorage.getItem('spike_motors');
@@ -148,6 +150,190 @@ export default function App() {
   const blocklyEditorRef = useRef<BlocklyEditorRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileBlockInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const savedSlot = localStorage.getItem('spike_current_slot');
+    const slot = savedSlot ? parseInt(savedSlot) : 0;
+    setCurrentSlot(slot);
+    
+    // We delay slightly to ensure blockly is mounted before loading
+    setTimeout(() => {
+      loadSlotData(slot);
+    }, 600);
+  }, []);
+
+  const loadSlotData = (slot: number) => {
+    const savedWorkspace = localStorage.getItem(`spike_slot_${slot}_workspace`);
+    if (savedWorkspace && blocklyEditorRef.current) {
+        blocklyEditorRef.current.loadWorkspace(JSON.parse(savedWorkspace));
+    } else if (blocklyEditorRef.current) {
+        blocklyEditorRef.current.loadWorkspace(null); // Clear workspace
+    }
+    const savedPython = localStorage.getItem(`spike_slot_${slot}_python`);
+    if (savedPython) {
+        setCustomCode(savedPython);
+        setBlocklyCode(savedPython);
+    } else {
+        setCustomCode('');
+        setBlocklyCode('');
+    }
+  };
+
+  const handleSlotChange = (newSlot: number) => {
+    if (newSlot === currentSlot) return;
+    // Save current
+    if (blocklyEditorRef.current) {
+      const workspace = blocklyEditorRef.current.saveWorkspace();
+      if (workspace) {
+         localStorage.setItem(`spike_slot_${currentSlot}_workspace`, JSON.stringify(workspace));
+      } else {
+         localStorage.removeItem(`spike_slot_${currentSlot}_workspace`);
+      }
+    }
+    localStorage.setItem(`spike_slot_${currentSlot}_python`, activeTab === 'blocks' ? blocklyCode : customCode);
+    
+    // Switch
+    setCurrentSlot(newSlot);
+    localStorage.setItem('spike_current_slot', newSlot.toString());
+    loadSlotData(newSlot);
+  };
+
+  const uploadMultiProgramMenu = async () => {
+    if (!port || !port.writable || isExecuting) return;
+    
+    if (blocklyEditorRef.current) {
+      const workspace = blocklyEditorRef.current.saveWorkspace();
+      if (workspace) localStorage.setItem(`spike_slot_${currentSlot}_workspace`, JSON.stringify(workspace));
+    }
+    localStorage.setItem(`spike_slot_${currentSlot}_python`, activeTab === 'blocks' ? blocklyCode : customCode);
+
+    let combinedCode = `import hub, utime, sys
+from hub import light_matrix, button
+try:
+    from hub import status_light
+except ImportError:
+    status_light = None
+
+programs = {}\n`;
+    let activeSlots = [];
+    
+    for (let i = 0; i < TOTAL_SLOTS; i++) {
+        let code = i === currentSlot ? (activeTab === 'blocks' ? blocklyCode : customCode) : localStorage.getItem(`spike_slot_${i}_python`) || '';
+        
+        code = code.replace('_WAIT_FIRST_TIME = True', '_WAIT_FIRST_TIME = False');
+        code = code.replace('_WAIT_FIRST_TIME = False', '_WAIT_FIRST_TIME = False');
+        
+        // Forza la disabilitazione di qualsiasi wait mode nel codice da concatenare
+        code = code.replace("is_wait_mode = globals().get('_WAIT_FIRST_TIME', False)", "is_wait_mode = False");
+        
+        if (code && code.trim().length > 50) {
+            activeSlots.push(i);
+            combinedCode += `programs[${i}] = [\n`;
+            const lines = code.split('\n');
+            for (let line of lines) {
+                let safeLine = line.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '');
+                combinedCode += `    '${safeLine}',\n`;
+            }
+            combinedCode += `]\n\n`;
+        }
+    }
+    
+    if (activeSlots.length === 0) {
+        alert("Nessun programma trovato da caricare nel menu.");
+        return;
+    }
+    
+    combinedCode += `
+available_slots = list(programs.keys())
+available_slots.sort()
+current_index = 0
+
+def show_slot():
+    slot = available_slots[current_index]
+    light_matrix.write(str(slot))
+
+def check_btn(btn_name):
+    try:
+        if hasattr(button, 'pressed') and hasattr(button, btn_name): 
+            return button.pressed(getattr(button, btn_name))
+        
+        btn_lower = btn_name.lower()
+        if hasattr(button, btn_lower): 
+            b = getattr(button, btn_lower)
+            if hasattr(b, 'was_pressed'): return b.was_pressed()
+            if hasattr(b, 'is_pressed'): return b.is_pressed()
+            
+            # Spike 3 alternate check
+            if hasattr(b, 'pressed'):
+                if callable(b.pressed): return b.pressed()
+                else: return b.pressed
+    except Exception as e:
+        print("Btn check err:", e)
+    return False
+
+try:
+    show_slot()
+    print("Menu avviato. Usa i tasti Destra/Sinistra per navigare, e il tasto Centrale (o entrambi Destra+Sinistra) per selezionare.")
+    if status_light:
+        try:
+            status_light.on('white')
+        except:
+            pass
+
+    while True:
+        utime.sleep_ms(50)
+        
+        # Allow center button or both left and right simultaneously to start
+        btn_center = check_btn('CENTER') or check_btn('POWER') or (check_btn('LEFT') and check_btn('RIGHT'))
+        
+        if btn_center:
+            light_matrix.clear()
+            slot = available_slots[current_index]
+            print("Avvio slot", slot)
+            
+            # Facciamo lampeggiare lo schermo per confermare
+            for _ in range(3):
+                light_matrix.write(str(slot))
+                utime.sleep_ms(150)
+                light_matrix.clear()
+                utime.sleep_ms(150)
+                
+            try:
+                source_code = '\\n'.join(programs[slot])
+                exec(source_code, globals())
+            except BaseException as e:
+                print("Errore o interruzione programma", slot, ":", e)
+                light_matrix.write("X")
+                utime.sleep_ms(2000)
+                
+            print("Programma terminato, ritorno al menu.")
+            if status_light:
+                try:
+                    status_light.on('white')
+                except:
+                    pass
+            utime.sleep_ms(500)
+            show_slot()
+        elif check_btn('LEFT'):
+            current_index = (current_index - 1) % len(available_slots)
+            show_slot()
+            utime.sleep_ms(300)
+        elif check_btn('RIGHT'):
+            current_index = (current_index + 1) % len(available_slots)
+            show_slot()
+            utime.sleep_ms(300)
+except BaseException as root_e:
+    print("Errore critico nel menu multi-programma:", root_e)
+    try:
+        light_matrix.write("E")
+        utime.sleep_ms(2000)
+    except:
+        pass
+`;
+
+    setLogs(prev => prev + "\n[Caricamento Menu Multi-Programma: Usa Sinistra/Destra per scegliere il numero del programma, premi Centrale (o Sinistra+Destra insieme) per avviarlo!]\n");
+    await executeCode(combinedCode, false);
+  };
 
   const handleSaveProgram = () => {
     let workspaceData = null;
@@ -397,6 +583,19 @@ export default function App() {
       setPort(p);
       setIsConnected(true);
       setLogs(prev => prev + "Connesso a LEGO Spike Prime.\n");
+      
+      for (let i = 0; i < TOTAL_SLOTS; i++) {
+        localStorage.removeItem(`spike_slot_${i}_workspace`);
+        localStorage.removeItem(`spike_slot_${i}_python`);
+      }
+      setBlocklyCode('');
+      setCustomCode('');
+      if (blocklyEditorRef.current) {
+         blocklyEditorRef.current.loadWorkspace(null); // Clear workspace
+      }
+      setCurrentSlot(0);
+      localStorage.setItem('spike_current_slot', '0');
+
       // Svuota lo schermo del robot alla connessione
       try {
         const writer = p.writable.getWriter();
@@ -572,7 +771,7 @@ except: pass
             <div className="w-12 h-12 rounded-md flex items-center justify-center shadow-sm overflow-hidden bg-white border-2 border-black">
               <img src={logoStaarr} alt="Logo Staarr" className="w-full h-full object-contain" />
             </div>
-            <h1 className="font-semibold tracking-tight text-3xl">Lego Spike a Blocchi <span className="text-xl">(e Pyton)</span></h1>
+            <h1 className="font-semibold tracking-tight text-3xl">Lego Spike a blocchi e Python</h1>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -712,6 +911,31 @@ except: pass
                 </button>
               </div>
               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-blue-50/70 border border-blue-300 rounded-lg p-1 mr-1 shadow-sm">
+                  <div className="flex items-center gap-1 px-1.5">
+                    <span className="text-xs font-bold text-blue-800 uppercase tracking-wider whitespace-nowrap">Slot:</span>
+                    <select 
+                      value={currentSlot} 
+                      onChange={(e) => handleSlotChange(parseInt(e.target.value))}
+                      className="text-sm font-bold bg-white border border-blue-200 text-blue-950 rounded px-2 py-0.5 outline-none focus:border-blue-600 cursor-pointer shadow-sm"
+                    >
+                      {[...Array(TOTAL_SLOTS)].map((_, i) => (
+                        <option key={i} value={i}>Programma {i}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="w-px h-5 bg-blue-200 self-center"></div>
+                  <button
+                    onClick={uploadMultiProgramMenu}
+                    disabled={!isConnected || isExecuting}
+                    className="flex items-center gap-1.5 bg-blue-800 hover:bg-blue-900 text-white disabled:bg-blue-100 disabled:text-blue-400 border border-blue-900/20 px-2.5 py-1 rounded-md text-sm font-semibold transition-colors disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
+                    title="Carica TUTTI i programmi come un menu selezionabile dal robot."
+                  >
+                    <Blocks className="w-3.5 h-3.5" />
+                    Carica tutti i codici
+                  </button>
+                </div>
+                <div className="w-px h-6 bg-neutral-300 mx-1"></div>
                 <button
                   onClick={() => executeCode(activeTab === 'blocks' ? blocklyCode : customCode, true)}
                   disabled={!isConnected || isExecuting}
@@ -750,10 +974,10 @@ except: pass
                   wheelDistance={wheelDistance}
                   maxMotorSpeed={maxMotorSpeed}
                   isVisible={activeTab === 'blocks'}
-                  onCodeChange={(code) => {
+                  onCodeChange={useCallback((code: string) => {
                     setBlocklyCode(code);
                     setCustomCode(code);
-                  }} 
+                  }, [])} 
                 />
               </div>
               <div className={`absolute inset-0 w-full h-full ${activeTab === 'python' ? 'block' : 'pointer-events-none opacity-0 invisible h-0 overflow-hidden'} bg-white overflow-y-auto`}>
