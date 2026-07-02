@@ -301,7 +301,7 @@ try:
             try:
                 source_code = '\\n'.join(programs[slot])
                 exec(source_code, globals())
-            except BaseException as e:
+            except Exception as e:
                 print("Errore o interruzione programma", slot, ":", e)
                 light_matrix.write("X")
                 utime.sleep_ms(2000)
@@ -322,7 +322,7 @@ try:
             current_index = (current_index + 1) % len(available_slots)
             show_slot()
             utime.sleep_ms(300)
-except BaseException as root_e:
+except Exception as root_e:
     print("Errore critico nel menu multi-programma:", root_e)
     try:
         light_matrix.write("E")

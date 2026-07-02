@@ -1636,7 +1636,7 @@ async def main():
 
         try:
             await _run_user_code()
-        except BaseException as e:
+        except Exception as e:
             print("Interruzione o errore:", e)
         
         # Se abbiamo eseguito via tasto (o eravamo in wait mode), assicuriamo lo schermo spento
