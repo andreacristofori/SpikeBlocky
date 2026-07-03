@@ -1097,6 +1097,17 @@ const toolbox = {
       "colour": "#FFA500",
       "contents": [
         { "kind": "block", "type": "controls_if", "colour": 40 },
+        {
+          "kind": "block",
+          "type": "controls_if",
+          "extraState": {
+            "hasElse": true
+          },
+          "mutation": {
+            "else": "1"
+          },
+          "colour": 40
+        },
         { "kind": "block", "type": "logic_compare", "colour": 40 },
         { "kind": "block", "type": "logic_operation", "colour": 40 },
         { "kind": "block", "type": "logic_negate", "colour": 40 },
