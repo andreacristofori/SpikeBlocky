@@ -411,6 +411,7 @@ Blockly.defineBlocksWithJsonArray([
         "name": "AXIS",
         "options": [
           ["Yaw (Imbardata)", "YAW"],
+          ["Valore assoluto di Yaw", "ABS_YAW"],
           ["Pitch (Beccheggio)", "PITCH"],
           ["Roll (Rollio)", "ROLL"]
         ]
@@ -839,6 +840,9 @@ pythonGenerator.forBlock['spike_gyro_wait_angle'] = function(block: any, generat
   const axis = block.getFieldValue('AXIS');
   const comp = block.getFieldValue('COMP');
   const angle = generator.valueToCode(block, 'ANGLE', generator.ORDER_NONE) || '90';
+  if (axis === 'ABS_YAW') {
+    return `while not (abs(int(motion_sensor.tilt_angles()[0] / 10)) ${comp} int(${angle})):\n    await runloop.sleep_ms(10)\n`;
+  }
   let index = '0';
   if (axis === 'YAW') index = '0';
   else if (axis === 'PITCH') index = '1';
