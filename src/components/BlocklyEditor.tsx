@@ -626,6 +626,110 @@ pythonGenerator.forBlock['spike_start'] = function(block: any, generator: any) {
   return '';
 };
 
+pythonGenerator.forBlock['variables_get'] = function(block: any, generator: any) {
+  const varId = block.getFieldValue('VAR');
+  let safeName = 'var';
+  if (varId) {
+    if (generator && generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
+      try {
+        safeName = generator.nameDB_.getName(varId, 'VARIABLE');
+      } catch (e) {
+        // Fallback
+      }
+    }
+    if (safeName === 'var' || !safeName) {
+      let varModel = null;
+      const ws = block.workspace;
+      if (ws) {
+        if (typeof ws.getVariableById === 'function') {
+          varModel = ws.getVariableById(varId);
+        } else if (typeof ws.getVariableMap === 'function') {
+          const map = ws.getVariableMap();
+          if (map && typeof map.getVariableById === 'function') {
+            varModel = map.getVariableById(varId);
+          }
+        }
+      }
+      safeName = varModel ? varModel.name : varId;
+    }
+  }
+  safeName = safeName.replace(/[^a-zA-Z0-9_]/g, '_');
+  if (/^[0-9]/.test(safeName)) {
+    safeName = '_' + safeName;
+  }
+  return [safeName, generator.ORDER_ATOMIC];
+};
+
+pythonGenerator.forBlock['variables_set'] = function(block: any, generator: any) {
+  const argument0 = generator.valueToCode(block, 'VALUE', generator.ORDER_NONE) || '0';
+  const varId = block.getFieldValue('VAR');
+  let safeName = 'var';
+  if (varId) {
+    if (generator && generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
+      try {
+        safeName = generator.nameDB_.getName(varId, 'VARIABLE');
+      } catch (e) {
+        // Fallback
+      }
+    }
+    if (safeName === 'var' || !safeName) {
+      let varModel = null;
+      const ws = block.workspace;
+      if (ws) {
+        if (typeof ws.getVariableById === 'function') {
+          varModel = ws.getVariableById(varId);
+        } else if (typeof ws.getVariableMap === 'function') {
+          const map = ws.getVariableMap();
+          if (map && typeof map.getVariableById === 'function') {
+            varModel = map.getVariableById(varId);
+          }
+        }
+      }
+      safeName = varModel ? varModel.name : varId;
+    }
+  }
+  safeName = safeName.replace(/[^a-zA-Z0-9_]/g, '_');
+  if (/^[0-9]/.test(safeName)) {
+    safeName = '_' + safeName;
+  }
+  return `global ${safeName}\n${safeName} = ${argument0}\n`;
+};
+
+pythonGenerator.forBlock['math_change'] = function(block: any, generator: any) {
+  const argument0 = generator.valueToCode(block, 'DELTA', generator.ORDER_ADDITIVE) || '0';
+  const varId = block.getFieldValue('VAR');
+  let safeName = 'var';
+  if (varId) {
+    if (generator && generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
+      try {
+        safeName = generator.nameDB_.getName(varId, 'VARIABLE');
+      } catch (e) {
+        // Fallback
+      }
+    }
+    if (safeName === 'var' || !safeName) {
+      let varModel = null;
+      const ws = block.workspace;
+      if (ws) {
+        if (typeof ws.getVariableById === 'function') {
+          varModel = ws.getVariableById(varId);
+        } else if (typeof ws.getVariableMap === 'function') {
+          const map = ws.getVariableMap();
+          if (map && typeof map.getVariableById === 'function') {
+            varModel = map.getVariableById(varId);
+          }
+        }
+      }
+      safeName = varModel ? varModel.name : varId;
+    }
+  }
+  safeName = safeName.replace(/[^a-zA-Z0-9_]/g, '_');
+  if (/^[0-9]/.test(safeName)) {
+    safeName = '_' + safeName;
+  }
+  return `global ${safeName}\n${safeName} = (${safeName} or 0) + ${argument0}\n`;
+};
+
 pythonGenerator.forBlock['spike_motor_run_for'] = function(block: any, generator: any) {
   const port = block.getFieldValue('PORT');
   const value = generator.valueToCode(block, 'VALUE', generator.ORDER_NONE) || '1';
@@ -1300,6 +1404,23 @@ const BlocklyEditor = forwardRef<BlocklyEditorRef, BlocklyEditorProps>(
               Blockly.serialization.workspaces.load(state, workspaceRef.current);
             } else {
               workspaceRef.current.clear();
+              try {
+                const defaultState = {
+                  blocks: {
+                    languageVersion: 0,
+                    blocks: [
+                      {
+                        type: "spike_start",
+                        x: 100,
+                        y: 100
+                      }
+                    ]
+                  }
+                };
+                Blockly.serialization.workspaces.load(defaultState, workspaceRef.current);
+              } catch (defaultError) {
+                console.error("Errore nel caricamento del blocco iniziale di default:", defaultError);
+              }
             }
           } catch (error) {
             console.error("Errore nel caricamento del workspace:", error);
@@ -1335,6 +1456,46 @@ const BlocklyEditor = forwardRef<BlocklyEditorRef, BlocklyEditorProps>(
   // Helper per generare il codice completo
   const generateFullCode = useCallback((code: string) => {
     const config = getTractionConfig();
+    
+    let globalDeclarations = '';
+    let moduleLevelVars = '';
+    if (workspaceRef.current) {
+      try {
+        let vars: any[] = [];
+        const ws = workspaceRef.current as any;
+        if (ws && typeof ws.getAllVariables === 'function') {
+          vars = ws.getAllVariables();
+        } else if (ws && typeof ws.getVariableMap === 'function') {
+          const map = ws.getVariableMap();
+          if (map && typeof map.getAllVariables === 'function') {
+            vars = map.getAllVariables();
+          }
+        } else if (Blockly && (Blockly as any).Variables && typeof (Blockly as any).Variables.allVariables === 'function') {
+          vars = (Blockly as any).Variables.allVariables(workspaceRef.current);
+        } else if (Blockly && (Blockly as any).Variables && typeof (Blockly as any).Variables.allUsedVarModels === 'function') {
+          vars = (Blockly as any).Variables.allUsedVarModels(workspaceRef.current);
+        }
+
+        if (vars && vars.length > 0) {
+          const varNames = vars.map(v => {
+            let name = (v && v.name) || '';
+            name = name.replace(/[^a-zA-Z0-9_]/g, '_');
+            if (/^[0-9]/.test(name)) {
+              name = '_' + name;
+            }
+            return name;
+          });
+          const uniqueVarNames = Array.from(new Set(varNames)).filter(name => name && name.length > 0);
+          if (uniqueVarNames.length > 0) {
+            moduleLevelVars = uniqueVarNames.map(name => `${name} = 0`).join('\n') + '\n';
+            globalDeclarations = `    global ${uniqueVarNames.join(', ')}\n`;
+          }
+        }
+      } catch (err) {
+        console.error("Errore nel recupero delle variabili di Blockly:", err);
+      }
+    }
+
     let indentedCode = code ? code.split('\n').map(line => line ? `    ${line}` : '').join('\n') : '    pass';
     indentedCode = indentedCode.replace(/runloop.sleep_ms/g, 'custom_sleep');
     return `import motor
@@ -1355,6 +1516,7 @@ __stop_flag = False
 _is_running_user_code = False
 _WAIT_FIRST_TIME = False
 
+${moduleLevelVars}
 _LEFT_PORT = port.${config.leftPort}
 _RIGHT_PORT = port.${config.rightPort}
 _LEFT_INVERTED = ${config.leftInverted ? 'True' : 'False'}
@@ -1519,7 +1681,7 @@ except:
 
 async def _run_user_code():
     # === START_BLOCKLY_CODE ===
-${indentedCode}
+${globalDeclarations}${indentedCode}
     # === END_BLOCKLY_CODE ===
 
 async def main():
@@ -1704,6 +1866,98 @@ runloop.run(main())
 
   useEffect(() => {
     if (blocklyDiv.current && !workspaceRef.current) {
+      // Override di Blockly prompt per creare un popup personalizzato con sfondo giallo
+      const customPrompt = (message: string, defaultValue: string, callback: (response: string | null) => void) => {
+        // Rimuove eventuali dialoghi duplicati rimasti
+        const existingPrompt = document.getElementById('blockly-custom-prompt-container');
+        if (existingPrompt) {
+          existingPrompt.remove();
+        }
+
+        const modalContainer = document.createElement('div');
+        modalContainer.id = 'blockly-custom-prompt-container';
+        modalContainer.className = 'fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 backdrop-blur-xs';
+        
+        const card = document.createElement('div');
+        // Sfondo giallo vivo, bordo nero spesso nello stile Lego Spike
+        card.className = 'bg-[#FFE600] border-3 border-black rounded-xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-w-sm w-full flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150';
+        
+        const title = document.createElement('label');
+        title.className = 'block text-sm font-bold text-black uppercase tracking-wider select-none';
+        title.textContent = message;
+        card.appendChild(title);
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = defaultValue || '';
+        input.className = 'w-full bg-white text-black border-2 border-black rounded-lg px-3 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-black';
+        card.appendChild(input);
+        
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'flex justify-end gap-3 mt-2';
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.textContent = 'Annulla';
+        cancelBtn.className = 'px-4 py-2 bg-white text-black border-2 border-black rounded-lg font-bold text-sm hover:bg-neutral-100 active:translate-y-[1px] active:translate-x-[1px] active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer';
+        
+        const okBtn = document.createElement('button');
+        okBtn.type = 'submit';
+        okBtn.textContent = 'Conferma';
+        okBtn.className = 'px-4 py-2 bg-black text-white border-2 border-black rounded-lg font-bold text-sm hover:bg-neutral-800 active:translate-y-[1px] active:translate-x-[1px] active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer';
+        
+        btnContainer.appendChild(cancelBtn);
+        btnContainer.appendChild(okBtn);
+        card.appendChild(btnContainer);
+        
+        modalContainer.appendChild(card);
+        document.body.appendChild(modalContainer);
+        
+        // Focus e selezione automatica del testo
+        setTimeout(() => {
+          input.focus();
+          input.select();
+        }, 50);
+        
+        const cleanup = () => {
+          modalContainer.remove();
+        };
+        
+        const handleCancel = () => {
+          cleanup();
+          callback(null);
+        };
+        
+        const handleConfirm = () => {
+          const value = input.value.trim();
+          cleanup();
+          callback(value);
+        };
+        
+        cancelBtn.addEventListener('click', handleCancel);
+        okBtn.addEventListener('click', handleConfirm);
+        
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleConfirm();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            handleCancel();
+          }
+        });
+        
+        modalContainer.addEventListener('mousedown', (e) => {
+          if (e.target === modalContainer) {
+            handleCancel();
+          }
+        });
+      };
+
+      if (Blockly.dialog && typeof (Blockly.dialog as any).setPrompt === 'function') {
+        (Blockly.dialog as any).setPrompt(customPrompt);
+      }
+
       // Change Logica blocks color
       const logicBlocks = ['controls_if', 'logic_compare', 'logic_operation', 'logic_negate', 'logic_boolean'];
       logicBlocks.forEach(type => {
@@ -1893,6 +2147,23 @@ runloop.run(main())
   const handleClear = () => {
     if (workspaceRef.current && window.confirm("Sei sicuro di voler cancellare tutti i blocchi?")) {
       workspaceRef.current.clear();
+      try {
+        const defaultState = {
+          blocks: {
+            languageVersion: 0,
+            blocks: [
+              {
+                type: "spike_start",
+                x: 100,
+                y: 100
+              }
+            ]
+          }
+        };
+        Blockly.serialization.workspaces.load(defaultState, workspaceRef.current);
+      } catch (err) {
+        console.error("Errore nel caricamento del blocco iniziale di default dopo cancellazione:", err);
+      }
     }
   };
 
